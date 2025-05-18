@@ -1,6 +1,4 @@
 # InductionMotor-Timer-Controller
-Arduino Nano-based dual 3-phase induction motor timer controller with 4x4 keypad and 20x4 I2C LCD. Features user-configurable run times, interval gap, EEPROM resume after power loss, and emergency stop functionality. Ideal for timed automation of sequential motor operations.
-# InductionMotor-Timer-Controller
 
 This project provides an Arduino Nano-based controller for managing two 3-phase induction motors using a 4x4 keypad and a 20x4 I2C LCD. It allows users to set operation times for both motors with a configurable interval gap and supports EEPROM-based task resumption after power loss.
 
@@ -25,13 +23,13 @@ This project provides an Arduino Nano-based controller for managing two 3-phase 
 
 ## 🧩 Wiring Overview
 
-| Component        | Arduino Nano Pin |
-|------------------|------------------|
+| Component        | Arduino Nano Pin   |
+|------------------|--------------------|
 | LCD (I2C)        | A4 (SDA), A5 (SCL) |
-| Keypad Rows      | D6, D7, D8, D9     |
-| Keypad Columns   | D2, D3, D4, D5     |
-| Motor 1 Control  | D10               |
-| Motor 2 Control  | D11               |
+| Keypad Rows      | 14, 15, 16, 17     |
+| Keypad Columns   | 7, 8, 9, 10        |
+| Motor 1 Control  | 3, 4               |
+| Motor 2 Control  | 5, 6               |
 
 > 💡 Ensure proper isolation and safety precautions while handling 3-phase motors.
 
