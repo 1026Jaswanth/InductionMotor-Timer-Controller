@@ -4,7 +4,8 @@
 #include <EEPROM.h>
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
-
+bool motor1PulseDone = false;
+bool motor2PulseDone = false;
 const byte ROWS = 4;
 const byte COLS = 4;
 char keys[ROWS][COLS] = {
@@ -168,29 +169,28 @@ if (valid) {
 
 void emergencyStop() {
   running = false;
-    digitalWrite(MOTOR1_1_PIN, LOW);
-    digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(1000);
-    digitalWrite(MOTOR1_1_PIN, LOW);
-    digitalWrite(MOTOR1_2_PIN, HIGH);
-    delay(1000);
-    digitalWrite(MOTOR1_1_PIN, LOW);
-    digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(500);
-    digitalWrite(MOTOR2_1_PIN, LOW);
-    digitalWrite(MOTOR2_2_PIN, LOW);
-    delay(1000);
-    digitalWrite(MOTOR2_1_PIN, LOW);
-    digitalWrite(MOTOR2_2_PIN, HIGH);
-    delay(1000);
-    digitalWrite(MOTOR2_1_PIN, LOW);
-    digitalWrite(MOTOR2_2_PIN, LOW);
-    delay(500);
 
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("EMERGENCY STOP");
-  delay(2000);
+  digitalWrite(MOTOR1_1_PIN, LOW);
+  digitalWrite(MOTOR1_2_PIN, LOW);
+  delay(1000);
+  digitalWrite(MOTOR1_1_PIN, LOW);
+  digitalWrite(MOTOR1_2_PIN, HIGH);
+  delay(1000);
+  digitalWrite(MOTOR1_1_PIN, LOW);
+  digitalWrite(MOTOR1_2_PIN, LOW);
+  delay(500);
+  digitalWrite(MOTOR2_1_PIN, LOW);
+  digitalWrite(MOTOR2_2_PIN, LOW);
+  delay(1000);
+  digitalWrite(MOTOR2_1_PIN, LOW);
+  digitalWrite(MOTOR2_2_PIN, HIGH);
+  delay(1000);
+  digitalWrite(MOTOR2_1_PIN, LOW);
+  digitalWrite(MOTOR2_2_PIN, LOW);
+  delay(500);
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -251,30 +251,36 @@ void runMotors() {
   unsigned long elapsedMin = (millis() - runStartTime) / 60000;
   int remaining = 0;
 
-  if (runStep == 0 && elapsedMin < motor1Time) {
-    remaining = motor1Time - elapsedMin;
-    lcd.setCursor(0,0);
-    lcd.print("Motor1 Running     ");
-    lcd.setCursor(0,1);
-    lcd.print("Time Left: ");
-    lcd.print(remaining);
-    lcd.print(" min    ");
-    lcd.setCursor(0, 2);
-    lcd.print("Cycle ");
-    lcd.print(currentCycle);
-    lcd.print("/");
-    lcd.print(cycleCount);
-    digitalWrite(MOTOR1_1_PIN, LOW);
-    digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(1000);
-    digitalWrite(MOTOR1_1_PIN, HIGH);
-    digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(1000);
-    digitalWrite(MOTOR1_1_PIN, LOW);
-    digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(500);
+if (runStep == 0 && elapsedMin < motor1Time) {
+  remaining = motor1Time - elapsedMin;
+  lcd.setCursor(0,0);
+  lcd.print("Motor1 Running     ");
+  lcd.setCursor(0,1);
+  lcd.print("Time Left: ");
+  lcd.print(remaining);
+  lcd.print(" min    ");
+  lcd.setCursor(0, 2);
+  lcd.print("Cycle ");
+  lcd.print(currentCycle);
+  lcd.print("/");
+  lcd.print(cycleCount);
+  if (!motor1PulseDone) {
+  // Run the 3-phase ON/OFF pulse sequence just once
+  digitalWrite(MOTOR1_1_PIN, LOW);
+  digitalWrite(MOTOR1_2_PIN, LOW);
+  delay(1000);
+  digitalWrite(MOTOR1_1_PIN, HIGH);
+  digitalWrite(MOTOR1_2_PIN, LOW);
+  delay(1000);
+  digitalWrite(MOTOR1_1_PIN, LOW);
+  digitalWrite(MOTOR1_2_PIN, LOW);
+  delay(500);
+  motor1PulseDone = true;  // prevent re-execution
   }
-  else if (runStep == 0) {
+}
+else if (runStep == 0) {
+  if (motor1PulseDone) {
+    // Second pulse sequence, again only once
     digitalWrite(MOTOR1_1_PIN, LOW);
     digitalWrite(MOTOR1_2_PIN, LOW);
     delay(1000);
@@ -283,11 +289,15 @@ void runMotors() {
     delay(1000);
     digitalWrite(MOTOR1_1_PIN, LOW);
     digitalWrite(MOTOR1_2_PIN, LOW);
-    delay(1000);
-    runStartTime = millis();
-    runStep = 1;
-    saveToEEPROM();
+    delay(500);
+    motor1PulseDone = false;  // reset for next cycle
   }
+
+  runStartTime = millis();
+  runStep = 1;
+  saveToEEPROM();
+}
+
   else if (runStep == 1 && elapsedMin < gapTime) {
     remaining = gapTime - elapsedMin;
     lcd.setCursor(0,0);
@@ -320,6 +330,7 @@ void runMotors() {
     lcd.print(currentCycle);
     lcd.print("/");
     lcd.print(cycleCount);
+    if (!motor2PulseDone) {
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(1000);
@@ -329,8 +340,11 @@ void runMotors() {
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(500);
+    motor2PulseDone = true;
+    }
   }
   else if (runStep == 2) {
+    if (motor2PulseDone) {
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(1000);
@@ -340,6 +354,8 @@ void runMotors() {
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(500);
+    motor2PulseDone = false;
+    }
 
     if (currentCycle < cycleCount) {
       currentCycle++;
