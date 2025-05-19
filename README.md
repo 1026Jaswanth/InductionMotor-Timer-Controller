@@ -42,6 +42,7 @@ This project provides an Arduino Nano-based controller for managing two 3-phase 
    - `#`: Confirm entry
    - `*`: Emergency stop
    - `D`: Start the configured sequence
+   - `A`: Clear the entered input
 3. Motors are activated in sequence with the configured interval.
 4. EEPROM stores the config and progress during runtime.
 
