@@ -19,11 +19,12 @@ byte colPins[COLS] = {7, 8, 9, 10};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-#define MOTOR1_1_PIN 3
-#define MOTOR1_2_PIN 4
-#define MOTOR2_1_PIN 5
-#define MOTOR2_2_PIN 6
+#define MOTOR1_1_PIN 5
+#define MOTOR1_2_PIN 6
+#define MOTOR2_1_PIN 3
+#define MOTOR2_2_PIN 4
 #define EEPROM_ADDR 0
+#define press 2
 
 int motor1Time = 0, motor2Time = 0, gapTime = 0, cycleCount = 1; // NEW
 int currentCycle = 1; // NEW
@@ -33,7 +34,7 @@ int step = 0; // 0: M1, 1: M2, 2: Gap, 3: Repeat Count
 int runStep = 0;
 unsigned long runStartTime;
 bool running = false, resumedFromEEPROM = false;
-
+bool resetTriggered = false;
 void setup() {
   Serial.begin(9600);
   pinMode(MOTOR1_1_PIN, OUTPUT);
@@ -44,6 +45,8 @@ void setup() {
   digitalWrite(MOTOR1_2_PIN, LOW);
   digitalWrite(MOTOR2_1_PIN, LOW);
   digitalWrite(MOTOR2_2_PIN, LOW);
+  pinMode(press, OUTPUT);   // Previously missing or unclear
+  digitalWrite(press, HIGH); // Default state (unpressed)
 
   lcd.init();
   lcd.backlight();
@@ -169,7 +172,8 @@ if (valid) {
 
 void emergencyStop() {
   running = false;
-
+  motor1PulseDone = false;
+  motor2PulseDone = false;
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("EMERGENCY STOP");
@@ -191,7 +195,13 @@ void emergencyStop() {
   digitalWrite(MOTOR2_1_PIN, LOW);
   digitalWrite(MOTOR2_2_PIN, LOW);
   delay(500);
-
+  // Trigger external reset button via D12
+  if (!resetTriggered) {
+    resetTriggered = true;
+    digitalWrite(press, LOW);
+    delay(100);
+    digitalWrite(press, HIGH);
+  }
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Resume Last Task?");
@@ -265,10 +275,11 @@ if (runStep == 0 && elapsedMin < motor1Time) {
   lcd.print("/");
   lcd.print(cycleCount);
   if (!motor1PulseDone) {
+    Serial.println("Motor 1 started");
   // Run the 3-phase ON/OFF pulse sequence just once
   digitalWrite(MOTOR1_1_PIN, LOW);
   digitalWrite(MOTOR1_2_PIN, LOW);
-  delay(1000);
+  delay(500);
   digitalWrite(MOTOR1_1_PIN, HIGH);
   digitalWrite(MOTOR1_2_PIN, LOW);
   delay(1000);
@@ -281,6 +292,7 @@ if (runStep == 0 && elapsedMin < motor1Time) {
 else if (runStep == 0) {
   if (motor1PulseDone) {
     // Second pulse sequence, again only once
+    Serial.println("Motor 1 stopped");
     digitalWrite(MOTOR1_1_PIN, LOW);
     digitalWrite(MOTOR1_2_PIN, LOW);
     delay(1000);
@@ -331,9 +343,10 @@ else if (runStep == 0) {
     lcd.print("/");
     lcd.print(cycleCount);
     if (!motor2PulseDone) {
+      Serial.println("Motor 2 started");
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
-    delay(1000);
+    delay(500);
     digitalWrite(MOTOR2_1_PIN, HIGH);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(1000);
@@ -345,6 +358,7 @@ else if (runStep == 0) {
   }
   else if (runStep == 2) {
     if (motor2PulseDone) {
+      Serial.println("Motor 2 stoppped");
     digitalWrite(MOTOR2_1_PIN, LOW);
     digitalWrite(MOTOR2_2_PIN, LOW);
     delay(1000);
